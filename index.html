@@ -1,0 +1,457 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Cowsay Web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: man-page header strip, then a control panel beside a terminal window; stacks to one column on phones. */
+:root {
+  --bg: #e9ebe6;
+  --panel: #f6f7f3;
+  --ink: #1f2420;
+  --muted: #5d665e;
+  --line: #c9cec6;
+  --accent: #a4530f;
+  --accent-ink: #fffaf3;
+  --term-bg: #1b1915;
+  --term-fg: #f0c674;
+  --term-dim: #8a7a58;
+  --font-display: "VT323", "IBM Plex Mono", ui-monospace, monospace;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12110e; --panel: #1b1a16; --ink: #e8e3d6; --muted: #9a927f; --line: #34312a;
+    --accent: #f0a83c; --accent-ink: #1b1305; --term-bg: #0b0a08; --term-fg: #f5c46b; --term-dim: #7d6c4a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12110e; --panel: #1b1a16; --ink: #e8e3d6; --muted: #9a927f; --line: #34312a;
+  --accent: #f0a83c; --accent-ink: #1b1305; --term-bg: #0b0a08; --term-fg: #f5c46b; --term-dim: #7d6c4a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 20px; }
+
+.manhead { display: flex; justify-content: space-between; gap: 12px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 8px; text-transform: uppercase; flex-wrap: wrap; }
+header h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(44px, 8vw, 72px); line-height: .9; margin: 0; text-wrap: balance; }
+header h1 span { color: var(--accent); }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 16px; min-width: 0; }
+.field { display: grid; gap: 6px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.label code { text-transform: none; letter-spacing: 0; color: var(--accent); }
+textarea, input[type="text"], input[type="number"], select {
+  width: 100%; font: 14px/1.45 var(--font-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px;
+}
+textarea { min-height: 96px; resize: vertical; }
+:is(textarea, input, select, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { font: 500 13px var(--font-mono); padding: 8px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+.modes { display: flex; flex-wrap: wrap; gap: 6px; }
+.modes button { font: 12px var(--font-mono); padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.modes button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: transparent; font-weight: 600; }
+.modes button:hover { border-color: var(--accent); }
+
+.row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+.term { background: var(--term-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--line); min-width: 0; display: grid; }
+.term-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #ffffff14; font: 12px var(--font-mono); color: var(--term-dim); }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #ffffff22; display: block; }
+.term-bar .t { flex: 1; text-align: center; }
+.cmd { font: 13px/1.5 var(--font-mono); color: var(--term-dim); padding: 14px 16px 0; overflow-x: auto; white-space: pre; }
+.cmd b { color: var(--term-fg); font-weight: 500; }
+pre#out { margin: 0; padding: 10px 16px 18px; font: 15px/1.25 var(--font-mono); color: var(--term-fg); overflow-x: auto; min-height: 280px; white-space: pre; text-shadow: 0 0 6px color-mix(in srgb, var(--term-fg) 30%, transparent); }
+.term-actions { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid #ffffff14; }
+.btn { font: 500 13px var(--font-mono); padding: 7px 12px; border-radius: 4px; cursor: pointer; border: 1px solid var(--term-dim); background: transparent; color: var(--term-fg); }
+.btn:hover { border-color: var(--term-fg); }
+.btn.primary { background: var(--term-fg); color: var(--term-bg); border-color: var(--term-fg); }
+.status { margin-left: auto; align-self: center; font: 12px var(--font-mono); color: var(--term-dim); }
+
+.ref { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+.ref table { border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; }
+.ref td { padding: 2px 14px 2px 0; vertical-align: top; }
+.ref td:first-child { color: var(--accent); white-space: nowrap; }
+.refwrap { overflow-x: auto; }
+
+@media (max-width: 420px) { .row { grid-template-columns: 1fr 1fr; } pre#out { font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="manhead"><span>COWSAY(1)</span><span>User Commands</span><span>COWSAY(1)</span></div>
+  <header>
+    <h1>cowsay<span>_</span></h1>
+    <p>A configurable talking (or thinking) cow, and friends. Type a message, pick a cowfile and a mode, and copy the result straight into a terminal, commit message or chat.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Options">
+      <div class="field">
+        <label class="label" for="msg">Message</label>
+        <textarea id="msg" spellcheck="false">Moo. This cow was rendered in your browser, with the same speech bubble rules as the original Perl script.</textarea>
+      </div>
+
+      <div class="field">
+        <span class="label">Command <code id="cmdname">cowsay</code></span>
+        <div class="seg" role="group" aria-label="Say or think">
+          <button type="button" id="say" aria-pressed="true">say  ( &lt; &gt; )</button>
+          <button type="button" id="think" aria-pressed="false">think ( o o )</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="cow">Cowfile <code>-f</code></label>
+        <select id="cow"></select>
+      </div>
+
+      <div class="field">
+        <span class="label">Mode <code id="modeflag">default</code></span>
+        <div class="modes" id="modes" role="group" aria-label="Mode"></div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="label" for="eyes">Eyes <code>-e</code></label>
+          <input type="text" id="eyes" maxlength="2" value="oo">
+        </div>
+        <div class="field">
+          <label class="label" for="tongue">Tongue <code>-T</code></label>
+          <input type="text" id="tongue" maxlength="2" value="">
+        </div>
+        <div class="field">
+          <label class="label" for="width">Width <code>-W</code></label>
+          <input type="number" id="width" min="4" max="120" value="40">
+        </div>
+      </div>
+
+      <label class="check"><input type="checkbox" id="nowrap"> Keep my line breaks, no word wrap <code style="font-family:var(--font-mono);color:var(--accent);font-size:12px">-n</code></label>
+
+      <div class="ref">
+        <div class="refwrap">
+          <table>
+            <tr><td>-b borg</td><td>==</td></tr>
+            <tr><td>-d dead</td><td>xx, tongue U</td></tr>
+            <tr><td>-g greedy</td><td>$$</td></tr>
+            <tr><td>-p paranoid</td><td>@@</td></tr>
+            <tr><td>-s stoned</td><td>**, tongue U</td></tr>
+            <tr><td>-t tired</td><td>--</td></tr>
+            <tr><td>-w wired</td><td>OO</td></tr>
+            <tr><td>-y youthful</td><td>..</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="term" aria-label="Output">
+      <div class="term-bar"><span class="dots"><i></i><i></i><i></i></span><span class="t">~/pasture — bash</span><span style="width:42px"></span></div>
+      <div class="cmd" id="cmd"></div>
+      <pre id="out" aria-live="polite"></pre>
+      <div class="term-actions">
+        <button type="button" class="btn primary" id="copy">Copy output</button>
+        <button type="button" class="btn" id="copycmd">Copy command</button>
+        <button type="button" class="btn" id="fortune">fortune |</button>
+        <span class="status" id="status"></span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- Cowfiles. Placeholders: {T} thoughts line, {E} eyes, {U} tongue (both two characters wide). -->
+<script type="text/plain" id="cow-default">
+        {T}   ^__^
+         {T}  ({E})\_______
+            (__)\       )\/\
+             {U} ||----w |
+                ||     ||
+</script>
+<script type="text/plain" id="cow-small">
+       {T}   ,__,
+        {T}  ({E})____
+           (__)    )\
+            {U}||--|| *
+</script>
+<script type="text/plain" id="cow-moose">
+  {T}
+   {T}   \_\_    _/_/
+    {T}      \__/
+           ({E})\_______
+           (__)\       )\/\
+            {U} ||----w |
+               ||     ||
+</script>
+<script type="text/plain" id="cow-sheep">
+  {T}
+   {T}
+       __
+      U{E}U\.'@@@@@@`.
+      \__/(@@@@@@@@@@)
+           (@@@@@@@@)
+           `YY~~~~YY'
+            ||    ||
+</script>
+<script type="text/plain" id="cow-tux">
+   {T}
+    {T}
+        .--.
+       |o_o |
+       |:_/ |
+      //   \ \
+     (|     | )
+    /'\_   _/`\
+    \___)=(___/
+</script>
+<script type="text/plain" id="cow-bunny">
+  {T}
+   {T}   \
+        \ /\
+        ( )
+      .( o ).
+</script>
+<script type="text/plain" id="cow-kitty">
+     {T}
+      {T}
+       ("`-'  '-/") .___..--' ' "`-._
+         ` *_ *  )    `-.   (      ) .`-.__. `)
+         (_Y_.) ' ._   )   `._` ;  `` -. .-'
+      _.. `--'_..-_/   /--' _ .' ,4
+   ( i l ),-''  ( l i),'  ( ( ! .-'
+</script>
+<script type="text/plain" id="cow-stegosaurus">
+{T}                             .       .
+ {T}                           / `.   .' "
+  {T}                  .---.  <    > <    >  .---.
+   {T}                 |    \  \ - ~ ~ - /  /    |
+         _____          ..-~             ~-..-~
+        |     |   \~~~\.'                    `./~~~/
+       ---------   \__/                        \__/
+      .'  O    \     /               /       \  "
+     (_____,    `._.'               |         }  \/~~~/
+      `----.          /       }     |        /    \__/
+            `-.      |       /      |       /      `. ,~~|
+                ~-.__|      /_ - ~ ^|      /- _      `..-'
+                     |     /        |     /     ~-.     `-. _  _  _
+                     |_____|        |_____|         ~ - . _ _ _ _ _>
+</script>
+<script type="text/plain" id="cow-dragon">
+      {T}                    / \  //\
+       {T}    |\___/|      /   \//  \\
+            /0  0  \__  /    //  | \ \
+           /     /  \/_/    //   |  \  \
+           @_^_@'/   \/_   //    |   \   \
+           //_^_/     \/_ //     |    \    \
+        ( //) |        \///      |     \     \
+      ( / /) _|_ /   )  //       |      \     _\
+    ( // /) '/,_ _ _/  ( ; -.    |    _ _\.-~        .-~~~^-.
+  (( / / )) ,-{        _      `-.|.-~-.           .~         `.
+ (( // / ))  '/\      /                 ~-. _ .-~      .-~^-.  \
+ (( /// ))      `.   {            }                   /      \  \
+  (( / ))     .----~-.\        \-'                 .~         \  `. \^-.
+             ///.----..>        \             _ -~             `.  ^-`  ^-_
+               ///-._ _ _ _ _ _ _}^ - - - - ~                     ~-- ,.-~
+                                                                  /.-~
+</script>
+
+<script>
+(function () {
+  const COWS = [
+    ["default", "default"], ["small", "small"], ["moose", "moose"], ["sheep", "sheep"],
+    ["tux", "tux"], ["bunny", "bunny"], ["kitty", "kitty"], ["stegosaurus", "stegosaurus"], ["dragon", "dragon"]
+  ];
+  const MODES = [
+    { id: "none", flag: "", label: "default", eyes: "oo", tongue: "  " },
+    { id: "b", flag: "-b", label: "borg", eyes: "==", tongue: "  " },
+    { id: "d", flag: "-d", label: "dead", eyes: "xx", tongue: "U " },
+    { id: "g", flag: "-g", label: "greedy", eyes: "$$", tongue: "  " },
+    { id: "p", flag: "-p", label: "paranoid", eyes: "@@", tongue: "  " },
+    { id: "s", flag: "-s", label: "stoned", eyes: "**", tongue: "U " },
+    { id: "t", flag: "-t", label: "tired", eyes: "--", tongue: "  " },
+    { id: "w", flag: "-w", label: "wired", eyes: "OO", tongue: "  " },
+    { id: "y", flag: "-y", label: "youthful", eyes: "..", tongue: "  " }
+  ];
+  const FORTUNES = [
+    "There is no place like 127.0.0.1.",
+    "Grass is just salad that never made it to the plate.",
+    "Have you tried turning the pasture off and on again?",
+    "Real cows chew their commits twice before pushing.",
+    "A watched pot never boils. A watched build always fails.",
+    "Today's forecast: 90% chance of moo.",
+    "It works on my field.",
+    "Every log file is a story nobody wanted to read.",
+    "To err is human. To moo is bovine.",
+    "rm -rf is not a cleaning strategy."
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const state = { think: false, mode: "none" };
+
+  const cowSel = $("cow");
+  COWS.forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; cowSel.appendChild(o); });
+
+  const modesEl = $("modes");
+  MODES.forEach((m) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = m.label + (m.flag ? " " + m.flag : "");
+    b.dataset.mode = m.id; b.setAttribute("aria-pressed", m.id === state.mode ? "true" : "false");
+    b.addEventListener("click", () => {
+      state.mode = m.id;
+      modesEl.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.mode === m.id ? "true" : "false"));
+      $("eyes").value = m.eyes;
+      $("tongue").value = m.tongue.trim();
+      render();
+    });
+    modesEl.appendChild(b);
+  });
+
+  const chars = (s) => Array.from(s);
+  const len = (s) => chars(s).length;
+
+  function wrapText(text, width) {
+    const out = [];
+    text.replace(/\t/g, "        ").split("\n").forEach((para) => {
+      const words = para.split(/ +/).filter((w) => w.length);
+      if (!words.length) { out.push(""); return; }
+      let line = "";
+      words.forEach((w) => {
+        // Break words longer than the width, as Text::Wrap does.
+        while (len(w) > width) {
+          if (line) { out.push(line); line = ""; }
+          const c = chars(w); out.push(c.slice(0, width).join("")); w = c.slice(width).join("");
+        }
+        if (!w) return;
+        if (!line) line = w;
+        else if (len(line) + 1 + len(w) <= width) line += " " + w;
+        else { out.push(line); line = w; }
+      });
+      if (line) out.push(line);
+    });
+    // Trim leading/trailing blank lines the way the original effectively does.
+    while (out.length > 1 && out[out.length - 1] === "") out.pop();
+    return out.length ? out : [""];
+  }
+
+  function bubble(lines, think) {
+    const max = Math.max(...lines.map(len));
+    const pad = (s) => s + " ".repeat(max - len(s));
+    const res = [" " + "_".repeat(max + 2)];
+    if (lines.length === 1) {
+      const [l, r] = think ? ["(", ")"] : ["<", ">"];
+      res.push(`${l} ${pad(lines[0])} ${r}`);
+    } else {
+      lines.forEach((ln, i) => {
+        let l, r;
+        if (think) { l = "("; r = ")"; }
+        else if (i === 0) { l = "/"; r = "\\"; }
+        else if (i === lines.length - 1) { l = "\\"; r = "/"; }
+        else { l = "|"; r = "|"; }
+        res.push(`${l} ${pad(ln)} ${r}`);
+      });
+    }
+    res.push(" " + "-".repeat(max + 2));
+    return res.join("\n");
+  }
+
+  function fit2(s, fallback) {
+    const c = chars(s || "");
+    if (!c.length) return fallback;
+    return (c.join("") + "  ").slice(0, 2);
+  }
+
+  function cowArt(name, think, eyes, tongue) {
+    let src = $("cow-" + name).textContent.replace(/^\n/, "").replace(/\s+$/, "");
+    return src.replace(/\{T\}/g, think ? "o" : "\\").replace(/\{E\}/g, eyes).replace(/\{U\}/g, tongue);
+  }
+
+  function shellQuote(s) {
+    if (/^[A-Za-z0-9_.,:\/-]+$/.test(s)) return s;
+    return "'" + s.replace(/'/g, "'\\''") + "'";
+  }
+
+  let lastOutput = "", lastCommand = "";
+
+  function render() {
+    const msg = $("msg").value;
+    const width = Math.max(4, Math.min(120, parseInt($("width").value, 10) || 40));
+    const nowrap = $("nowrap").checked;
+    const mode = MODES.find((m) => m.id === state.mode);
+    const eyes = fit2($("eyes").value, mode.eyes);
+    const tongue = fit2($("tongue").value, "  ");
+
+    const lines = nowrap ? msg.replace(/\t/g, "        ").replace(/\s+$/, "").split("\n") : wrapText(msg.trim(), width);
+    lastOutput = bubble(lines, state.think) + "\n" + cowArt(cowSel.value, state.think, eyes, tongue);
+    $("out").textContent = lastOutput;
+
+    const cmd = state.think ? "cowthink" : "cowsay";
+    const args = [];
+    if (cowSel.value !== "default") args.push("-f " + cowSel.value);
+    if (mode.flag) args.push(mode.flag);
+    if (eyes !== mode.eyes) args.push("-e " + shellQuote(eyes));
+    if (tongue.trim() && tongue !== mode.tongue) args.push("-T " + shellQuote(tongue));
+    if (nowrap) args.push("-n"); else if (width !== 40) args.push("-W " + width);
+    lastCommand = [cmd, ...args, shellQuote(msg.replace(/\n/g, " ").trim() || "")].join(" ");
+    $("cmd").innerHTML = "";
+    const p = document.createElement("span"); p.textContent = "$ ";
+    const b = document.createElement("b"); b.textContent = lastCommand;
+    $("cmd").append(p, b);
+    $("cmdname").textContent = cmd;
+    $("modeflag").textContent = mode.flag || "none";
+  }
+
+  function setThink(v) {
+    state.think = v;
+    $("say").setAttribute("aria-pressed", String(!v));
+    $("think").setAttribute("aria-pressed", String(v));
+    render();
+  }
+
+  let statusTimer;
+  function flash(text) {
+    $("status").textContent = text;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => { $("status").textContent = ""; }, 1800);
+  }
+  function copy(text, label, el) {
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents(el);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      flash("Selected. Press Ctrl+C or ⌘C");
+    };
+    try {
+      navigator.clipboard.writeText(text).then(() => flash(label + " copied"), fallback);
+    } catch (e) { fallback(); }
+  }
+
+  $("say").addEventListener("click", () => setThink(false));
+  $("think").addEventListener("click", () => setThink(true));
+  ["msg", "eyes", "tongue", "width"].forEach((id) => $(id).addEventListener("input", render));
+  cowSel.addEventListener("change", render);
+  $("nowrap").addEventListener("change", render);
+  $("copy").addEventListener("click", () => copy(lastOutput, "Output", $("out")));
+  $("copycmd").addEventListener("click", () => copy(lastCommand, "Command", $("cmd")));
+  let fi = -1;
+  $("fortune").addEventListener("click", () => {
+    let n; do { n = Math.floor(Math.random() * FORTUNES.length); } while (n === fi && FORTUNES.length > 1);
+    fi = n; $("msg").value = FORTUNES[n]; render();
+  });
+
+  render();
+})();
+</script>
+
+</body></html>
