@@ -90,6 +90,821 @@ pre#out { margin: 0; padding: 10px 16px 18px; font: 15px/1.25 var(--font-mono); 
 .ref td:first-child { color: var(--accent); white-space: nowrap; }
 .refwrap { overflow-x: auto; }
 
+/* Sticker export */
+.export { grid-template-columns: minmax(0, 1fr) minmax(0, 300px); align-items: start; column-gap: 28px; }
+@media (max-width: 760px) { .export { grid-template-columns: minmax(0, 1fr); } }
+.export h2 { font-family: var(--font-display); font-weight: 400; font-size: 36px; line-height: 1; margin: 0; }
+.export .intro { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+.xopts { display: grid; gap: 16px; min-width: 0; }
+.xactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.xbtn { font: 500 13px var(--font-mono); padding: 8px 14px; border-radius: 4px; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.xbtn:hover { border-color: var(--accent); }
+.xbtn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.xbtn:disabled { opacity: .5; cursor: progress; }
+#xstatus { font: 12px var(--font-mono); color: var(--muted); }
+.hint { font-size: 13px; color: var(--muted); margin: 0; max-width: 60ch; }
+.preview { margin: 0; display: grid; gap: 8px; justify-items: center; }
+.stage { width: 100%; aspect-ratio: 1; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; display: grid; place-items: center; overflow: hidden; padding: 10px;
+  --c1: var(--panel); --c2: var(--line);
+  background: repeating-conic-gradient(var(--c1) 0 25%, var(--c2) 0 50%) 0 0 / 16px 16px; }
+.stage.dark { --c1: #2a2823; --c2: #3a372f; }
+.stage img { max-width: 100%; max-height: 100%; image-rendering: auto; display: block; }
+.preview figcaption { font: 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 420px) { .row { grid-template-columns: 1fr 1fr; } pre#out { font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="manhead"><span>COWSAY(1)</span><span>User Commands</span><span>COWSAY(1)</span></div>
+  <header>
+    <h1>cowsay<span>_</span></h1>
+    <p>A configurable talking (or thinking) cow, and friends. Type a message, pick a cowfile and a mode, and copy the result straight into a terminal, commit message or chat.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Options">
+      <div class="field">
+        <label class="label" for="msg">Message</label>
+        <textarea id="msg" spellcheck="false">Moo. This cow was rendered in your browser, with the same speech bubble rules as the original Perl script.</textarea>
+      </div>
+
+      <div class="field">
+        <span class="label">Command <code id="cmdname">cowsay</code></span>
+        <div class="seg" role="group" aria-label="Say or think">
+          <button type="button" id="say" aria-pressed="true">say  ( &lt; &gt; )</button>
+          <button type="button" id="think" aria-pressed="false">think ( o o )</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="cow">Cowfile <code>-f</code></label>
+        <select id="cow"></select>
+      </div>
+
+      <div class="field">
+        <span class="label">Mode <code id="modeflag">default</code></span>
+        <div class="modes" id="modes" role="group" aria-label="Mode"></div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="label" for="eyes">Eyes <code>-e</code></label>
+          <input type="text" id="eyes" maxlength="2" value="oo">
+        </div>
+        <div class="field">
+          <label class="label" for="tongue">Tongue <code>-T</code></label>
+          <input type="text" id="tongue" maxlength="2" value="">
+        </div>
+        <div class="field">
+          <label class="label" for="width">Width <code>-W</code></label>
+          <input type="number" id="width" min="4" max="120" value="40">
+        </div>
+      </div>
+
+      <label class="check"><input type="checkbox" id="nowrap"> Keep my line breaks, no word wrap <code style="font-family:var(--font-mono);color:var(--accent);font-size:12px">-n</code></label>
+
+      <div class="ref">
+        <div class="refwrap">
+          <table>
+            <tr><td>-b borg</td><td>==</td></tr>
+            <tr><td>-d dead</td><td>xx, tongue U</td></tr>
+            <tr><td>-g greedy</td><td>$$</td></tr>
+            <tr><td>-p paranoid</td><td>@@</td></tr>
+            <tr><td>-s stoned</td><td>**, tongue U</td></tr>
+            <tr><td>-t tired</td><td>--</td></tr>
+            <tr><td>-w wired</td><td>OO</td></tr>
+            <tr><td>-y youthful</td><td>..</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="term" aria-label="Output">
+      <div class="term-bar"><span class="dots"><i></i><i></i><i></i></span><span class="t">~/pasture — bash</span><span style="width:42px"></span></div>
+      <div class="cmd" id="cmd"></div>
+      <pre id="out" aria-live="polite"></pre>
+      <div class="term-actions">
+        <button type="button" class="btn primary" id="copy">Copy output</button>
+        <button type="button" class="btn" id="copycmd">Copy command</button>
+        <button type="button" class="btn" id="fortune">fortune |</button>
+        <span class="status" id="status"></span>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel export" aria-label="Sticker export">
+    <div class="xopts">
+      <div>
+        <h2>Export as sticker</h2>
+        <p class="intro">Chat apps set messages in proportional fonts, so pasted ASCII art loses its shape. The image export draws every character on a fixed grid, including Chinese, Japanese and Korean text at double width, so the cow looks the same in any app.</p>
+      </div>
+
+      <div class="field">
+        <span class="label">Format</span>
+        <div class="modes" id="xformat" role="group" aria-label="Format">
+          <button type="button" data-v="png" aria-pressed="true">PNG · still</button>
+          <button type="button" data-v="blink" aria-pressed="false">GIF · blink</button>
+          <button type="button" data-v="type" aria-pressed="false">GIF · typewriter</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="xsize">Size</label>
+        <select id="xsize">
+          <option value="512">512 × 512 · sticker (WhatsApp, Telegram)</option>
+          <option value="480">480 × 480 · WeChat, sharp on phones</option>
+          <option value="240">240 × 240 · WeChat platform size</option>
+          <option value="1024">1024 × 1024 · extra sharp</option>
+          <option value="fit">Fit to art · high resolution</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="label">Background</span>
+        <div class="modes" id="xbg" role="group" aria-label="Background">
+          <button type="button" data-v="clear-dark" aria-pressed="true">Transparent, dark ink</button>
+          <button type="button" data-v="clear-light" aria-pressed="false">Transparent, light ink</button>
+          <button type="button" data-v="terminal" aria-pressed="false">Terminal</button>
+          <button type="button" data-v="paper" aria-pressed="false">Paper</button>
+        </div>
+      </div>
+
+      <div class="xactions">
+        <button type="button" class="xbtn primary" id="xsave">Save image</button>
+        <button type="button" class="xbtn" id="xcopy">Copy image</button>
+        <span id="xstatus" aria-live="polite"></span>
+      </div>
+      <p class="hint" id="xhint">To make it a sticker, send the image in a chat, then long-press it and add it to your stickers or favourites. Browsers can only put still pictures on the clipboard. Copy GIF also adds the animated version as rich content, which Teams, Outlook, Slack and Gmail paste as a moving GIF. WeChat, WhatsApp and Line take only the still frame, so for those, save the GIF and send the file.</p>
+    </div>
+
+    <figure class="preview">
+      <div class="stage" id="stage"><img id="sticker" alt="Rendered cowsay sticker preview"></div>
+      <figcaption id="xmeta">Rendering…</figcaption>
+    </figure>
+  </section>
+</div>
+
+<!-- Cowfiles. Placeholders: {T} thoughts line, {E} eyes, {U} tongue (both two characters wide). -->
+<script type="text/plain" id="cow-default">
+        {T}   ^__^
+         {T}  ({E})\_______
+            (__)\       )\/\
+             {U} ||----w |
+                ||     ||
+</script>
+<script type="text/plain" id="cow-small">
+       {T}   ,__,
+        {T}  ({E})____
+           (__)    )\
+            {U}||--|| *
+</script>
+<script type="text/plain" id="cow-moose">
+  {T}
+   {T}   \_\_    _/_/
+    {T}      \__/
+           ({E})\_______
+           (__)\       )\/\
+            {U} ||----w |
+               ||     ||
+</script>
+<script type="text/plain" id="cow-sheep">
+  {T}
+   {T}
+       __
+      U{E}U\.'@@@@@@`.
+      \__/(@@@@@@@@@@)
+           (@@@@@@@@)
+           `YY~~~~YY'
+            ||    ||
+</script>
+<script type="text/plain" id="cow-tux">
+   {T}
+    {T}
+        .--.
+       |o_o |
+       |:_/ |
+      //   \ \
+     (|     | )
+    /'\_   _/`\
+    \___)=(___/
+</script>
+<script type="text/plain" id="cow-bunny">
+  {T}
+   {T}   \
+        \ /\
+        ( )
+      .( o ).
+</script>
+<script type="text/plain" id="cow-kitty">
+     {T}
+      {T}
+       ("`-'  '-/") .___..--' ' "`-._
+         ` *_ *  )    `-.   (      ) .`-.__. `)
+         (_Y_.) ' ._   )   `._` ;  `` -. .-'
+      _.. `--'_..-_/   /--' _ .' ,4
+   ( i l ),-''  ( l i),'  ( ( ! .-'
+</script>
+<script type="text/plain" id="cow-stegosaurus">
+{T}                             .       .
+ {T}                           / `.   .' "
+  {T}                  .---.  <    > <    >  .---.
+   {T}                 |    \  \ - ~ ~ - /  /    |
+         _____          ..-~             ~-..-~
+        |     |   \~~~\.'                    `./~~~/
+       ---------   \__/                        \__/
+      .'  O    \     /               /       \  "
+     (_____,    `._.'               |         }  \/~~~/
+      `----.          /       }     |        /    \__/
+            `-.      |       /      |       /      `. ,~~|
+                ~-.__|      /_ - ~ ^|      /- _      `..-'
+                     |     /        |     /     ~-.     `-. _  _  _
+                     |_____|        |_____|         ~ - . _ _ _ _ _>
+</script>
+<script type="text/plain" id="cow-dragon">
+      {T}                    / \  //\
+       {T}    |\___/|      /   \//  \\
+            /0  0  \__  /    //  | \ \
+           /     /  \/_/    //   |  \  \
+           @_^_@'/   \/_   //    |   \   \
+           //_^_/     \/_ //     |    \    \
+        ( //) |        \///      |     \     \
+      ( / /) _|_ /   )  //       |      \     _\
+    ( // /) '/,_ _ _/  ( ; -.    |    _ _\.-~        .-~~~^-.
+  (( / / )) ,-{        _      `-.|.-~-.           .~         `.
+ (( // / ))  '/\      /                 ~-. _ .-~      .-~^-.  \
+ (( /// ))      `.   {            }                   /      \  \
+  (( / ))     .----~-.\        \-'                 .~         \  `. \^-.
+             ///.----..>        \             _ -~             `.  ^-`  ^-_
+               ///-._ _ _ _ _ _ _}^ - - - - ~                     ~-- ,.-~
+                                                                  /.-~
+</script>
+
+<script>
+(function () {
+  const COWS = ["default", "small", "moose", "sheep", "tux", "bunny", "kitty", "stegosaurus", "dragon"];
+  const MODES = [
+    { id: "none", flag: "", label: "default", eyes: "oo", tongue: "  " },
+    { id: "b", flag: "-b", label: "borg", eyes: "==", tongue: "  " },
+    { id: "d", flag: "-d", label: "dead", eyes: "xx", tongue: "U " },
+    { id: "g", flag: "-g", label: "greedy", eyes: "$$", tongue: "  " },
+    { id: "p", flag: "-p", label: "paranoid", eyes: "@@", tongue: "  " },
+    { id: "s", flag: "-s", label: "stoned", eyes: "**", tongue: "U " },
+    { id: "t", flag: "-t", label: "tired", eyes: "--", tongue: "  " },
+    { id: "w", flag: "-w", label: "wired", eyes: "OO", tongue: "  " },
+    { id: "y", flag: "-y", label: "youthful", eyes: "..", tongue: "  " }
+  ];
+  const FORTUNES = [
+    "There is no place like 127.0.0.1.",
+    "Grass is just salad that never made it to the plate.",
+    "Have you tried turning the pasture off and on again?",
+    "Real cows chew their commits twice before pushing.",
+    "A watched pot never boils. A watched build always fails.",
+    "Today's forecast: 90% chance of moo.",
+    "It works on my field.",
+    "Every log file is a story nobody wanted to read.",
+    "To err is human. To moo is bovine.",
+    "rm -rf is not a cleaning strategy."
+  ];
+  const BGS = {
+    "clear-dark": { bg: null, ink: [31, 36, 32] },
+    "clear-light": { bg: null, ink: [245, 241, 230] },
+    "terminal": { bg: [27, 25, 21], ink: [240, 198, 116] },
+    "paper": { bg: [255, 255, 255], ink: [31, 36, 32] }
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const state = { think: false, mode: "none", xformat: "png", xbg: "clear-dark" };
+  let cur = null; // resolved settings for the current render
+
+  const cowSel = $("cow");
+  COWS.forEach((v) => { const o = document.createElement("option"); o.value = v; o.textContent = v; cowSel.appendChild(o); });
+
+  const modesEl = $("modes");
+  MODES.forEach((m) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = m.label + (m.flag ? " " + m.flag : "");
+    b.dataset.mode = m.id; b.setAttribute("aria-pressed", m.id === state.mode ? "true" : "false");
+    b.addEventListener("click", () => {
+      state.mode = m.id;
+      modesEl.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.mode === m.id ? "true" : "false"));
+      $("eyes").value = m.eyes;
+      $("tongue").value = m.tongue.trim();
+      render();
+    });
+    modesEl.appendChild(b);
+  });
+
+  /* ---------- Text layout with East Asian width ---------- */
+  const chars = (s) => Array.from(s);
+  function cellW(ch) {
+    const c = ch.codePointAt(0);
+    if (c < 0x1100) return 1;
+    if (c <= 0x115F || (c >= 0x2E80 && c <= 0xA4CF && c !== 0x303F) || (c >= 0xAC00 && c <= 0xD7A3) ||
+        (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFE30 && c <= 0xFE4F) || (c >= 0xFF00 && c <= 0xFF60) ||
+        (c >= 0xFFE0 && c <= 0xFFE6) || (c >= 0x1F300 && c <= 0x1F64F) || (c >= 0x1F900 && c <= 0x1F9FF) ||
+        (c >= 0x20000 && c <= 0x3FFFD)) return 2;
+    return 1;
+  }
+  const width = (s) => chars(s).reduce((n, ch) => n + cellW(ch), 0);
+
+  function wrapText(text, max) {
+    const out = [];
+    text.replace(/\t/g, "        ").split("\n").forEach((para) => {
+      const words = para.split(/ +/).filter((w) => w.length);
+      if (!words.length) { out.push(""); return; }
+      let line = "", lw = 0;
+      const flush = () => { if (line) out.push(line); line = ""; lw = 0; };
+      words.forEach((w) => {
+        let ww = width(w);
+        if (line && lw + 1 + ww <= max) { line += " " + w; lw += 1 + ww; return; }
+        if (line) flush();
+        if (ww <= max) { line = w; lw = ww; return; }
+        // Break a word (or an unspaced CJK run) that is wider than the bubble.
+        let piece = "", pw = 0;
+        chars(w).forEach((ch) => {
+          const c = cellW(ch);
+          if (pw + c > max) { out.push(piece); piece = ""; pw = 0; }
+          piece += ch; pw += c;
+        });
+        line = piece; lw = pw;
+      });
+      flush();
+    });
+    while (out.length > 1 && out[out.length - 1] === "") out.pop();
+    return out.length ? out : [""];
+  }
+
+  // reveal: how many message characters to show (typewriter frames); the bubble keeps its full size.
+  function bubble(lines, think, reveal = Infinity) {
+    const max = Math.max(...lines.map(width));
+    let shown = 0;
+    const body = (s) => {
+      let r = "";
+      chars(s).forEach((ch) => { r += shown < reveal ? ch : " ".repeat(cellW(ch)); shown++; });
+      return r + " ".repeat(max - width(s));
+    };
+    const res = [" " + "_".repeat(max + 2)];
+    lines.forEach((ln, i) => {
+      let l, r;
+      if (think) { l = "("; r = ")"; }
+      else if (lines.length === 1) { l = "<"; r = ">"; }
+      else if (i === 0) { l = "/"; r = "\\"; }
+      else if (i === lines.length - 1) { l = "\\"; r = "/"; }
+      else { l = "|"; r = "|"; }
+      res.push(`${l} ${body(ln)} ${r}`);
+    });
+    res.push(" " + "-".repeat(max + 2));
+    return res.join("\n");
+  }
+
+  function fit2(s, fallback) {
+    const c = chars(s || "");
+    if (!c.length) return fallback;
+    return (c.join("") + "  ").slice(0, 2);
+  }
+
+  function cowArt(name, think, eyes, tongue) {
+    const src = $("cow-" + name).textContent.replace(/^\n/, "").replace(/\s+$/, "");
+    return src.replace(/\{T\}/g, think ? "o" : "\\").replace(/\{E\}/g, eyes).replace(/\{U\}/g, tongue);
+  }
+
+  function buildArt(opts = {}) {
+    return bubble(cur.lines, cur.think, opts.reveal) + "\n" +
+      cowArt(cur.cow, cur.think, opts.eyes || cur.eyes, cur.tongue);
+  }
+
+  function shellQuote(s) {
+    if (/^[A-Za-z0-9_.,:\/-]+$/.test(s)) return s;
+    return "'" + s.replace(/'/g, "'\\''") + "'";
+  }
+
+  let lastOutput = "", lastCommand = "";
+
+  function render() {
+    const msg = $("msg").value;
+    const w = Math.max(4, Math.min(120, parseInt($("width").value, 10) || 40));
+    const nowrap = $("nowrap").checked;
+    const mode = MODES.find((m) => m.id === state.mode);
+    const eyes = fit2($("eyes").value, mode.eyes);
+    const tongue = fit2($("tongue").value, "  ");
+    const lines = nowrap ? msg.replace(/\t/g, "        ").replace(/\s+$/, "").split("\n") : wrapText(msg.trim(), w);
+
+    cur = { lines, think: state.think, cow: cowSel.value, eyes, tongue };
+    lastOutput = buildArt();
+    $("out").textContent = lastOutput;
+
+    const cmd = state.think ? "cowthink" : "cowsay";
+    const args = [];
+    if (cowSel.value !== "default") args.push("-f " + cowSel.value);
+    if (mode.flag) args.push(mode.flag);
+    if (eyes !== mode.eyes) args.push("-e " + shellQuote(eyes));
+    if (tongue.trim() && tongue !== mode.tongue) args.push("-T " + shellQuote(tongue));
+    if (nowrap) args.push("-n"); else if (w !== 40) args.push("-W " + w);
+    lastCommand = [cmd, ...args, shellQuote(msg.replace(/\n/g, " ").trim() || "")].join(" ");
+    $("cmd").innerHTML = "";
+    const p = document.createElement("span"); p.textContent = "$ ";
+    const b = document.createElement("b"); b.textContent = lastCommand;
+    $("cmd").append(p, b);
+    $("cmdname").textContent = cmd;
+    $("modeflag").textContent = mode.flag || "none";
+    scheduleExport();
+  }
+
+  /* ---------- Canvas rendering ---------- */
+  const FONT = '"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace';
+  const LH = 1.18;
+  let charRatio = 0.6;
+
+  function measureRatio() {
+    const c = document.createElement("canvas").getContext("2d");
+    c.font = `500 100px ${FONT}`;
+    charRatio = c.measureText("M").width / 100 || 0.6;
+  }
+
+  // Grid geometry for a piece of art at the chosen output size.
+  function layoutFor(art, size) {
+    const rows = art.split("\n");
+    const cols = Math.max(1, ...rows.map(width));
+    if (size === "fit") {
+      const f = 28, pad = 28;
+      const W = Math.ceil(cols * charRatio * f + pad * 2), H = Math.ceil(rows.length * LH * f + pad * 2);
+      return { W, H, f, x0: pad, y0: pad, cols };
+    }
+    const S = +size, pad = Math.round(S * 0.05), avail = S - pad * 2;
+    const f = Math.min(avail / (cols * charRatio), avail / (rows.length * LH));
+    return { W: S, H: S, f, x0: (S - cols * charRatio * f) / 2, y0: (S - rows.length * LH * f) / 2, cols };
+  }
+
+  function drawArt(ctx, art, L, color) {
+    ctx.fillStyle = color;
+    // Heavier strokes keep small glyphs legible after GIF quantisation.
+    ctx.font = `${L.f < 14 ? 600 : 500} ${L.f}px ${FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const cw = charRatio * L.f;
+    art.split("\n").forEach((line, r) => {
+      let col = 0;
+      const y = L.y0 + (r + 0.5) * LH * L.f;
+      chars(line).forEach((ch) => {
+        const w = cellW(ch);
+        if (ch !== " ") ctx.fillText(ch, L.x0 + (col + w / 2) * cw, y);
+        col += w;
+      });
+    });
+  }
+
+  const rgb = (a) => `rgb(${a[0]},${a[1]},${a[2]})`;
+
+  function renderPng(art, size, bgKey) {
+    const L = layoutFor(art, size), p = BGS[bgKey];
+    const cv = document.createElement("canvas"); cv.width = L.W; cv.height = L.H;
+    const ctx = cv.getContext("2d");
+    if (p.bg) { ctx.fillStyle = rgb(p.bg); ctx.fillRect(0, 0, L.W, L.H); }
+    drawArt(ctx, art, L, rgb(p.ink));
+    return new Promise((res) => cv.toBlob((b) => res({ blob: b, W: L.W, H: L.H }), "image/png"));
+  }
+
+  /* ---------- Minimal GIF89a encoder (LZW, 32-colour palette) ---------- */
+  function lzwEncode(minCode, idx, out) {
+    const clear = 1 << minCode, eoi = clear + 1;
+    let codeSize = minCode + 1, next = eoi + 1;
+    let dict = new Map();
+    const bytes = [];
+    let acc = 0, nbits = 0;
+    const emit = (code) => {
+      acc |= code << nbits; nbits += codeSize;
+      while (nbits >= 8) { bytes.push(acc & 255); acc >>>= 8; nbits -= 8; }
+    };
+    emit(clear);
+    let prefix = idx[0];
+    for (let i = 1; i < idx.length; i++) {
+      const k = idx[i], key = prefix * 256 + k, hit = dict.get(key);
+      if (hit !== undefined) { prefix = hit; continue; }
+      emit(prefix);
+      if (next === 4096) {
+        emit(clear); dict = new Map(); codeSize = minCode + 1; next = eoi + 1;
+      } else {
+        if (next >= (1 << codeSize)) codeSize++;
+        dict.set(key, next++);
+      }
+      prefix = k;
+    }
+    emit(prefix); emit(eoi);
+    if (nbits > 0) bytes.push(acc & 255);
+    out.push(minCode);
+    for (let i = 0; i < bytes.length; i += 255) {
+      const n = Math.min(255, bytes.length - i);
+      out.push(n);
+      for (let j = 0; j < n; j++) out.push(bytes[i + j]);
+    }
+    out.push(0);
+  }
+
+  const u16 = (out, v) => out.push(v & 255, (v >> 8) & 255);
+
+  function renderGif(frames, size, bgKey) {
+    const p = BGS[bgKey], transparent = !p.bg;
+    const L = layoutFor(frames[frames.length - 1].art, size);
+    const { W, H } = L, N = W * H, LEVELS = 32;
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d", { willReadFrequently: true });
+
+    // Rasterise each frame to palette indices: 0 = background (or transparent), 31 = full ink.
+    let list = frames.map((fr) => {
+      ctx.clearRect(0, 0, W, H);
+      drawArt(ctx, fr.art, L, "#000");
+      const d = ctx.getImageData(0, 0, W, H).data, idx = new Uint8Array(N);
+      for (let i = 0; i < N; i++) {
+        const a = d[i * 4 + 3];
+        idx[i] = transparent ? (a > 90 ? LEVELS - 1 : 0) : Math.round(a * (LEVELS - 1) / 255);
+      }
+      return { idx, delay: fr.delay };
+    });
+    // Merge identical consecutive frames.
+    const merged = [];
+    list.forEach((f) => {
+      const prev = merged[merged.length - 1];
+      if (prev && prev.idx.every((v, i) => v === f.idx[i])) prev.delay += f.delay;
+      else merged.push(f);
+    });
+    list = null;
+
+    const out = [];
+    "GIF89a".split("").forEach((c) => out.push(c.charCodeAt(0)));
+    u16(out, W); u16(out, H);
+    out.push(0xF0 | 4, 0, 0); // global table, 32 entries
+    const bg = p.bg || p.ink.map((v) => 255 - v);
+    for (let i = 0; i < LEVELS; i++) {
+      const t = i / (LEVELS - 1);
+      for (let c = 0; c < 3; c++) out.push(Math.round(bg[c] + (p.ink[c] - bg[c]) * t));
+    }
+    if (merged.length > 1) {
+      out.push(0x21, 0xFF, 11);
+      "NETSCAPE2.0".split("").forEach((c) => out.push(c.charCodeAt(0)));
+      out.push(3, 1, 0, 0, 0);
+    }
+
+    let prev = null;
+    merged.forEach((f) => {
+      // Opaque GIFs only re-encode the changed rectangle; transparent ones need full frames.
+      let x0 = 0, y0 = 0, x1 = W - 1, y1 = H - 1;
+      if (prev && !transparent) {
+        x0 = W; y0 = H; x1 = -1; y1 = -1;
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+          const i = y * W + x;
+          if (f.idx[i] !== prev.idx[i]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        if (x1 < 0) { x0 = y0 = x1 = y1 = 0; }
+      }
+      const fw = x1 - x0 + 1, fh = y1 - y0 + 1;
+      const sub = new Uint8Array(fw * fh);
+      for (let y = 0; y < fh; y++) sub.set(f.idx.subarray((y0 + y) * W + x0, (y0 + y) * W + x0 + fw), y * fw);
+      const disposal = transparent ? 2 : 1;
+      out.push(0x21, 0xF9, 4, (disposal << 2) | (transparent ? 1 : 0));
+      u16(out, merged.length > 1 ? Math.max(2, f.delay) : 0);
+      out.push(0, 0);
+      out.push(0x2C); u16(out, x0); u16(out, y0); u16(out, fw); u16(out, fh); out.push(0);
+      lzwEncode(5, sub, out);
+      prev = f;
+    });
+    out.push(0x3B);
+    return { blob: new Blob([new Uint8Array(out)], { type: "image/gif" }), W, H };
+  }
+
+  function framesFor(kind) {
+    if (kind === "blink") {
+      const shut = cur.eyes === "--" ? "__" : "--";
+      return [
+        { art: buildArt(), delay: 220 },
+        { art: buildArt({ eyes: shut }), delay: 14 },
+        { art: buildArt(), delay: 40 },
+        { art: buildArt({ eyes: shut }), delay: 12 }
+      ];
+    }
+    const total = cur.lines.reduce((n, l) => n + chars(l).length, 0);
+    const step = Math.max(1, Math.ceil(total / 36));
+    const fr = [];
+    for (let n = 0; n < total; n += step) fr.push({ art: buildArt({ reveal: n }), delay: 7 });
+    fr.push({ art: buildArt(), delay: 320 });
+    return fr;
+  }
+
+  /* ---------- Export UI ---------- */
+  let exportTimer, exportSeq = 0, current = null, previewUrl = null;
+  const fmtKB = (n) => n < 1024 * 1024 ? (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB" : (n / 1048576).toFixed(2) + " MB";
+
+  function scheduleExport() {
+    clearTimeout(exportTimer);
+    exportTimer = setTimeout(runExport, 250);
+  }
+
+  async function runExport() {
+    if (!cur) return;
+    const seq = ++exportSeq, size = $("xsize").value, bgKey = state.xbg, kind = state.xformat;
+    $("xmeta").textContent = "Rendering…";
+    await new Promise((r) => setTimeout(r, 0));
+    let res;
+    try {
+      res = kind === "png" ? await renderPng(buildArt(), size, bgKey) : renderGif(framesFor(kind), size, bgKey);
+    } catch (e) {
+      $("xmeta").textContent = "Could not render this image. Try a smaller size.";
+      return;
+    }
+    if (seq !== exportSeq) return;
+    current = { ...res, ext: kind === "png" ? "png" : "gif" };
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(res.blob);
+    $("sticker").src = previewUrl;
+    $("stage").classList.toggle("dark", bgKey === "clear-light");
+    $("xmeta").textContent = `${res.W} × ${res.H} · ${current.ext.toUpperCase()} · ${fmtKB(res.blob.size)}`;
+  }
+
+  function xflash(text) {
+    $("xstatus").textContent = text;
+    clearTimeout(xflash.t);
+    xflash.t = setTimeout(() => { $("xstatus").textContent = ""; }, 3000);
+  }
+
+  function chipGroup(id, key) {
+    const el = $(id);
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-v]");
+      if (!b) return;
+      state[key] = b.dataset.v;
+      el.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      scheduleExport();
+    });
+  }
+  chipGroup("xformat", "xformat");
+  chipGroup("xbg", "xbg");
+  $("xsize").addEventListener("change", scheduleExport);
+
+  let downloads = null;
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("downloads").then((d) => { downloads = d; updateSaveHint(); }).catch(() => {});
+  }
+  function updateSaveHint() {
+    if (!downloads) $("xsave").title = "If saving is unavailable here, right-click or long-press the preview and choose Save image.";
+  }
+  updateSaveHint();
+
+  $("xsave").addEventListener("click", async () => {
+    if (!current) return;
+    const name = `${cur.think ? "cowthink" : "cowsay"}-${cur.cow}.${current.ext}`;
+    if (!downloads) { xflash("Saving isn't available here. Right-click or long-press the preview and choose Save image."); return; }
+    try {
+      await downloads.save({ filename: name, data: current.blob });
+      xflash("Saved " + name);
+    } catch (e) {
+      const code = e && e.code;
+      if (code === "declined") xflash("Save cancelled.");
+      else if (code === "rate_limited") xflash("A save prompt is already open.");
+      else xflash("Saving isn't available here. Right-click or long-press the preview and choose Save image.");
+    }
+  });
+
+  const blobToDataUrl = (blob) => new Promise((res, rej) => {
+    const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob);
+  });
+  const canClip = (t) => typeof ClipboardItem !== "undefined" && typeof ClipboardItem.supports === "function" && ClipboardItem.supports(t);
+
+  function updateCopyLabel() { $("xcopy").textContent = state.xformat === "png" ? "Copy image" : "Copy GIF"; }
+  $("xformat").addEventListener("click", updateCopyLabel);
+
+  $("xcopy").addEventListener("click", () => {
+    if (!cur || !current) return;
+    const isGif = current.ext === "gif";
+    const gifBlob = current.blob, W = current.W, H = current.H;
+    const png = renderPng(buildArt(), $("xsize").value, state.xbg).then((r) => r.blob);
+    const items = { "image/png": png };
+    if (isGif) {
+      // Rich-text targets read text/html and keep the animation; picture-only targets fall back to the PNG.
+      items["text/html"] = blobToDataUrl(gifBlob).then((url) =>
+        new Blob([`<img src="${url}" width="${W}" height="${H}" alt="cowsay">`], { type: "text/html" }));
+      if (canClip("image/gif")) items["image/gif"] = Promise.resolve(gifBlob);
+    }
+    try {
+      navigator.clipboard.write([new ClipboardItem(items)]).then(
+        () => xflash(isGif
+          ? (items["image/gif"] ? "Animated GIF copied." : "Copied. Rich-text apps paste it animated; picture-only apps get a still frame.")
+          : "Image copied. Paste it into your chat."),
+        () => xflash("Copying images isn't allowed here. Use Save image, or right-click or long-press the preview."));
+    } catch (e) {
+      xflash("This browser can't copy images. Use Save image, or right-click or long-press the preview.");
+    }
+  });
+
+  // Dragging the preview out hands Chromium-based browsers the real file, GIF included.
+  $("sticker").addEventListener("dragstart", (e) => {
+    if (!current || !previewUrl) return;
+    const name = `${cur.think ? "cowthink" : "cowsay"}-${cur.cow}.${current.ext}`;
+    try { e.dataTransfer.setData("DownloadURL", `${current.blob.type}:${name}:${previewUrl}`); } catch (_) {}
+  });
+
+  /* ---------- Terminal controls ---------- */
+  function setThink(v) {
+    state.think = v;
+    $("say").setAttribute("aria-pressed", String(!v));
+    $("think").setAttribute("aria-pressed", String(v));
+    render();
+  }
+
+  let statusTimer;
+  function flash(text) {
+    $("status").textContent = text;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => { $("status").textContent = ""; }, 1800);
+  }
+  function copy(text, label, el) {
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents(el);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      flash("Selected. Press Ctrl+C or ⌘C");
+    };
+    try { navigator.clipboard.writeText(text).then(() => flash(label + " copied"), fallback); }
+    catch (e) { fallback(); }
+  }
+
+  $("say").addEventListener("click", () => setThink(false));
+  $("think").addEventListener("click", () => setThink(true));
+  ["msg", "eyes", "tongue", "width"].forEach((id) => $(id).addEventListener("input", render));
+  cowSel.addEventListener("change", render);
+  $("nowrap").addEventListener("change", render);
+  $("copy").addEventListener("click", () => copy(lastOutput, "Output", $("out")));
+  $("copycmd").addEventListener("click", () => copy(lastCommand, "Command", $("cmd")));
+  let fi = -1;
+  $("fortune").addEventListener("click", () => {
+    let n; do { n = Math.floor(Math.random() * FORTUNES.length); } while (n === fi && FORTUNES.length > 1);
+    fi = n; $("msg").value = FORTUNES[n]; render();
+  });
+
+  measureRatio();
+  render();
+  // Re-render the image once the web font has loaded so its proportions are exact.
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load(`500 28px "IBM Plex Mono"`).then(() => { measureRatio(); scheduleExport(); }).catch(() => {});
+  }
+})();
+</script>
+
+</body></html>
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 20px; }
+
+.manhead { display: flex; justify-content: space-between; gap: 12px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 8px; text-transform: uppercase; flex-wrap: wrap; }
+header h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(44px, 8vw, 72px); line-height: .9; margin: 0; text-wrap: balance; }
+header h1 span { color: var(--accent); }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 16px; min-width: 0; }
+.field { display: grid; gap: 6px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.label code { text-transform: none; letter-spacing: 0; color: var(--accent); }
+textarea, input[type="text"], input[type="number"], select {
+  width: 100%; font: 14px/1.45 var(--font-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px;
+}
+textarea { min-height: 96px; resize: vertical; }
+:is(textarea, input, select, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { font: 500 13px var(--font-mono); padding: 8px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+.modes { display: flex; flex-wrap: wrap; gap: 6px; }
+.modes button { font: 12px var(--font-mono); padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.modes button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: transparent; font-weight: 600; }
+.modes button:hover { border-color: var(--accent); }
+
+.row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+.term { background: var(--term-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--line); min-width: 0; display: grid; }
+.term-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #ffffff14; font: 12px var(--font-mono); color: var(--term-dim); }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #ffffff22; display: block; }
+.term-bar .t { flex: 1; text-align: center; }
+.cmd { font: 13px/1.5 var(--font-mono); color: var(--term-dim); padding: 14px 16px 0; overflow-x: auto; white-space: pre; }
+.cmd b { color: var(--term-fg); font-weight: 500; }
+pre#out { margin: 0; padding: 10px 16px 18px; font: 15px/1.25 var(--font-mono); color: var(--term-fg); overflow-x: auto; min-height: 280px; white-space: pre; text-shadow: 0 0 6px color-mix(in srgb, var(--term-fg) 30%, transparent); }
+.term-actions { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid #ffffff14; }
+.btn { font: 500 13px var(--font-mono); padding: 7px 12px; border-radius: 4px; cursor: pointer; border: 1px solid var(--term-dim); background: transparent; color: var(--term-fg); }
+.btn:hover { border-color: var(--term-fg); }
+.btn.primary { background: var(--term-fg); color: var(--term-bg); border-color: var(--term-fg); }
+.status { margin-left: auto; align-self: center; font: 12px var(--font-mono); color: var(--term-dim); }
+
+.ref { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+.ref table { border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; }
+.ref td { padding: 2px 14px 2px 0; vertical-align: top; }
+.ref td:first-child { color: var(--accent); white-space: nowrap; }
+.refwrap { overflow-x: auto; }
+
 @media (max-width: 420px) { .row { grid-template-columns: 1fr 1fr; } pre#out { font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
